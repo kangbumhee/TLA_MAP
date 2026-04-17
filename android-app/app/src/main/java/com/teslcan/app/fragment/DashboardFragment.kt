@@ -126,13 +126,13 @@ class DashboardFragment : Fragment() {
 
     private fun updateAlertUI(info: AlertInfo) {
         val camTypeNames = mapOf(
-            0 to "과속 단속",
-            1 to "고정식 단속",
-            2 to "이동식 단속",
-            3 to "구간단속",
-            4 to "신호 단속",
-            5 to "버스전용",
-            6 to "어린이보호구역"
+            0 to "⚡ 과속 단속",
+            1 to "📷 고정식 단속",
+            2 to "📦 이동식 단속",
+            3 to "⏱ 구간단속",
+            4 to "🚦 신호 단속",
+            5 to "🚌 버스전용",
+            6 to "🏫 어린이보호구역"
         )
 
         if (info.phase == 0) {
@@ -234,13 +234,13 @@ class DashboardFragment : Fragment() {
         tvAlertTitle.setTextColor(Color.parseColor(titleColor))
         tvAlertTitle.text = if (info.overspeed && displayPhase >= 3) "감속하세요" else "전방 단속"
         tvCamType.text = mapOf(
-            0 to "과속 단속",
-            1 to "고정식 단속",
-            2 to "이동식 단속",
-            3 to "구간단속",
-            4 to "신호 단속",
-            5 to "버스전용",
-            6 to "어린이보호구역"
+            0 to "⚡ 과속 단속",
+            1 to "📷 고정식 단속",
+            2 to "📦 이동식 단속",
+            3 to "⏱ 구간단속",
+            4 to "🚦 신호 단속",
+            5 to "🚌 버스전용",
+            6 to "🏫 어린이보호구역"
         )[info.camType] ?: "단속카메라"
     }
 
@@ -265,29 +265,43 @@ class DashboardFragment : Fragment() {
         var camMarker=null;
         var alertLine=null;
         var lastCamKey=null;
+        var camConfig = {
+          0: { color:'#FF4444', icon:'⚡', label:'과속' },
+          1: { color:'#FF4444', icon:'📷', label:'고정식' },
+          2: { color:'#4488FF', icon:'📦', label:'이동식' },
+          3: { color:'#FF8800', icon:'⏱', label:'구간' },
+          4: { color:'#FFDD00', icon:'🚦', label:'신호' },
+          5: { color:'#4488FF', icon:'🚌', label:'버스' },
+          6: { color:'#39D353', icon:'🏫', label:'어린이' }
+        };
         function showCamera(lat,lon,speedLimit,camType){
-          var colors={0:'#FF4444',3:'#FF8800',4:'#FFDD00',5:'#4488FF',6:'#39D353'};
-          var color=colors[camType]||'#FF4444';
-          var key=lat+','+lon;
-          var limTxt=(speedLimit>0)?String(speedLimit):'\u2013';
+          var cfg = camConfig[camType] || camConfig[0];
+          var key = lat+','+lon;
+          var limTxt = (speedLimit>0)?String(speedLimit):'\u2013';
           if(key===lastCamKey&&camMarker){
-            if(alertLine&&marker){alertLine.setLatLngs([marker.getLatLng(),camMarker.getLatLng()]);}
+            if(alertLine&&marker){ alertLine.setLatLngs([marker.getLatLng(), camMarker.getLatLng()]); }
             return;
           }
-          lastCamKey=key;
-          if(camMarker){map.removeLayer(camMarker);camMarker=null;}
-          if(alertLine){map.removeLayer(alertLine);alertLine=null;}
-          var icon=L.divIcon({
+          lastCamKey = key;
+          if(camMarker){ map.removeLayer(camMarker); camMarker=null; }
+          if(alertLine){ map.removeLayer(alertLine); alertLine=null; }
+          var icon = L.divIcon({
             className:'cam-div-icon',
-            html:'<div style="background:'+color+';color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);">'+limTxt+'</div>',
-            iconSize:[36,36],
-            iconAnchor:[18,18]
+            html:'<div style="position:relative;text-align:center;">'
+              +'<div style="background:'+cfg.color+';color:#fff;border-radius:50%;width:42px;height:42px;'
+              +'display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px;'
+              +'border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.6);">'+limTxt+'</div>'
+              +'<div style="font-size:10px;color:'+cfg.color+';text-shadow:0 1px 2px #000;margin-top:1px;">'
+              +cfg.icon+' '+cfg.label+'</div></div>',
+            iconSize:[50,56], iconAnchor:[25,28]
           });
-          camMarker=L.marker([lat,lon],{icon:icon}).addTo(map);
+          camMarker = L.marker([lat,lon],{icon:icon}).addTo(map);
           if(marker){
-            alertLine=L.polyline([marker.getLatLng(),[lat,lon]],{color:color,weight:2,dashArray:'8,8',opacity:0.7}).addTo(map);
-            var b=L.latLngBounds([marker.getLatLng(),[lat,lon]]);
-            map.fitBounds(b,{padding:[40,40],maxZoom:16});
+            alertLine = L.polyline([marker.getLatLng(),[lat,lon]],{
+              color:cfg.color, weight:3, dashArray:'8,6', opacity:0.8
+            }).addTo(map);
+            var b = L.latLngBounds([marker.getLatLng(),[lat,lon]]);
+            map.fitBounds(b,{padding:[50,50],maxZoom:16});
           }
         }
         function hideCamera(){

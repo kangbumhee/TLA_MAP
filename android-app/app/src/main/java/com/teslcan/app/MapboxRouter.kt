@@ -11,7 +11,6 @@ class MapboxRouter {
 
     companion object {
         private const val TAG = "MapboxRouter"
-        // Set your Mapbox public token before building.
         private const val TOKEN = "YOUR_MAPBOX_PUBLIC_TOKEN"
         private const val BASE_URL = "https://api.mapbox.com/directions/v5/mapbox/driving"
         private const val TIMEOUT = 5000
@@ -182,3 +181,5 @@ class MapboxRouter {
         )
     }
 }
+
+

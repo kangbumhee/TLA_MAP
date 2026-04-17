@@ -43,6 +43,16 @@ class CameraEngine(
 
         private val ALERT_ZONES = intArrayOf(1000, 500, 300, 100)
         private const val BEARING_HISTORY_SIZE = 5
+
+        private fun camTypePriority(camType: Int): Int = when (camType) {
+            6 -> 0
+            3 -> 1
+            0, 1 -> 2
+            4 -> 3
+            2 -> 4
+            5 -> 5
+            else -> 3
+        }
     }
 
     private val router = MapboxRouter()
@@ -159,7 +169,11 @@ class CameraEngine(
         }
 
         if (candidates.isEmpty()) return null
-        val sorted = candidates.sortedBy { it.dist + it.angleDiff * 5 }
+        val sorted = candidates.sortedWith(
+            compareBy<Candidate> { camTypePriority(it.cam.camType) }
+                .thenBy { it.dist }
+                .thenBy { it.angleDiff }
+        )
         val topCandidates = sorted.take(3)
 
         routeRequestInProgress = true

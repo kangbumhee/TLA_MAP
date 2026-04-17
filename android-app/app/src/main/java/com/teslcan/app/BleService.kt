@@ -79,6 +79,10 @@ class BleService : Service() {
 
     var adManager: AdManager? = null
         private set
+    var routeSimulator: RouteSimulator? = null
+        private set
+    var isSimulationMode = false
+        private set
 
     override fun onBind(intent: Intent?): IBinder = binder
 
@@ -125,6 +129,27 @@ class BleService : Service() {
         scanner = bluetoothAdapter?.bluetoothLeScanner
         updateNoti("장치 검색 중... (DB: ${cameraDb.getCameraCount()}개)")
 
+        routeSimulator = RouteSimulator().apply {
+            onLocationUpdate = { lat, lon, speedKmh, sats, fix ->
+                currentLat = lat
+                currentLon = lon
+                currentSpeed = speedKmh
+                handler.post {
+                    onSpeedUpdate?.invoke(speedKmh)
+                    onGpsUpdate?.invoke(sats, fix)
+                    this@BleService.onLocationUpdate?.invoke(lat, lon)
+                }
+                if (fix) checkCamera()
+            }
+            onSimulationEnd = {
+                handler.post {
+                    isSimulationMode = false
+                    updateNoti("시뮬레이션 종료")
+                    alertPlayer.speakEvent("시뮬레이션이 종료되었습니다")
+                }
+            }
+        }
+
         startScan()
     }
 
@@ -145,6 +170,66 @@ class BleService : Service() {
         alertPlayer.applySettings(settings)
     }
 
+    fun startSimulation(presetName: String, speedKmh: Int = 60) {
+        isSimulationMode = true
+        stopScan()
+        try {
+            gatt?.close()
+        } catch (_: SecurityException) {
+        }
+        gatt = null
+        isConnected = false
+        cameraEngine.reset()
+        alertPlayer.stop()
+        handler.post {
+            onConnectionChanged?.invoke(false)
+            onAlertUpdate?.invoke(AlertInfo(0, 0, 0, 0, false))
+            updateNoti("시뮬: $presetName ($speedKmh km/h)")
+            alertPlayer.speakEvent("시뮬레이션을 시작합니다")
+        }
+        routeSimulator?.speedMultiplier = 1.0
+        routeSimulator?.startPreset(presetName, speedKmh)
+    }
+
+    fun startSimulationRoute(
+        sLat: Double,
+        sLon: Double,
+        eLat: Double,
+        eLon: Double,
+        speedKmh: Int = 60
+    ) {
+        isSimulationMode = true
+        stopScan()
+        try {
+            gatt?.close()
+        } catch (_: SecurityException) {
+        }
+        gatt = null
+        isConnected = false
+        cameraEngine.reset()
+        alertPlayer.stop()
+        handler.post {
+            onConnectionChanged?.invoke(false)
+            onAlertUpdate?.invoke(AlertInfo(0, 0, 0, 0, false))
+            updateNoti("시뮬: 커스텀 경로")
+            alertPlayer.speakEvent("시뮬레이션을 시작합니다")
+        }
+        routeSimulator?.speedMultiplier = 1.0
+        routeSimulator?.startRoute(sLat, sLon, eLat, eLon, speedKmh)
+    }
+
+    fun stopSimulation() {
+        routeSimulator?.stop()
+        isSimulationMode = false
+        cameraEngine.reset()
+        alertPlayer.stop()
+        handler.post {
+            onAlertUpdate?.invoke(AlertInfo(0, 0, 0, 0, false))
+            updateNoti("시뮬 종료. 장치 검색 중...")
+        }
+        startScan()
+    }
+
     /** 설정 화면에서 DB 갱신 후 카메라 개수 UI 동기화용 */
     fun refreshCameraCount() {
         handler.post {
@@ -160,6 +245,8 @@ class BleService : Service() {
         super.onDestroy()
         adManager?.destroy()
         adManager = null
+        routeSimulator?.stop()
+        routeSimulator = null
         stopScan()
         try {
             gatt?.close()
@@ -224,6 +311,7 @@ class BleService : Service() {
                 isConnected = false
                 gatt = null
                 overspeedLogActive = false
+                if (isSimulationMode) return
                 handler.post {
                     onConnectionChanged?.invoke(false)
                     alertPlayer.stop()

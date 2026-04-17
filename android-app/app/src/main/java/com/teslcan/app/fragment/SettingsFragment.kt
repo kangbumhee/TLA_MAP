@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -185,6 +186,47 @@ class SettingsFragment : Fragment() {
                         btnFirmware.isEnabled = true
                     }
                 }
+            }
+        }
+
+        val btnSimGangnam = v.findViewById<Button>(R.id.btnSimGangnam)
+        val btnSimSeocho = v.findViewById<Button>(R.id.btnSimSeocho)
+        val btnSimCamera = v.findViewById<Button>(R.id.btnSimCamera)
+        val btnSimStop = v.findViewById<Button>(R.id.btnSimStop)
+        val spinnerSimSpeed = v.findViewById<Spinner>(R.id.spinnerSimSpeed)
+        val tvSimStatus = v.findViewById<TextView>(R.id.tvSimStatus)
+
+        val speeds = intArrayOf(40, 60, 80, 100)
+
+        fun getSimSpeed(): Int {
+            val idx = spinnerSimSpeed.selectedItemPosition
+            return if (idx in speeds.indices) speeds[idx] else 60
+        }
+
+        fun launchSim(preset: String) {
+            val act = activity as? MainActivity ?: return
+            act.whenServiceReady { svc ->
+                val speed = getSimSpeed()
+                svc.startSimulation(preset, speed)
+                btnSimStop.isEnabled = true
+                tvSimStatus.text = "시뮬 진행: $preset (${speed} km/h)"
+                svc.routeSimulator?.onSimulationEnd = {
+                    activity?.runOnUiThread {
+                        btnSimStop.isEnabled = false
+                        tvSimStatus.text = "시뮬 종료"
+                    }
+                }
+            }
+        }
+
+        btnSimGangnam.setOnClickListener { launchSim("gangnam_jamsil") }
+        btnSimSeocho.setOnClickListener { launchSim("seocho_yangjae") }
+        btnSimCamera.setOnClickListener { launchSim("camera_dense") }
+        btnSimStop.setOnClickListener {
+            (activity as? MainActivity)?.whenServiceReady { svc ->
+                svc.stopSimulation()
+                btnSimStop.isEnabled = false
+                tvSimStatus.text = "시뮬 중지됨"
             }
         }
 
