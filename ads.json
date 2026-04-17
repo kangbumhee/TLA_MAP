@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "startup": {
+    "enabled": true,
+    "message": "살살가에 오신걸 환영합니다. 안전운전 하세요."
+  },
+  "periodic": [
+    {
+      "id": "ad_001",
+      "message": "살살가 프리미엄 출시! 광고 없이 쾌적하게.",
+      "intervalMin": 30,
+      "startHour": 0,
+      "endHour": 24,
+      "enabled": true,
+      "priority": 1
+    }
+  ],
+  "refreshIntervalSec": 300
+}
